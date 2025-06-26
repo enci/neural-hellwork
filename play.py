@@ -35,6 +35,9 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
+            
+            # Pass events to the game for handling
+            game.handle_event(event)
         
         # Fill the screen with background color
         screen.fill(Globals.bg_color)

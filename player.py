@@ -13,6 +13,10 @@ class Player(Entity):
         self.invincible_timer = 0
         self.lives = 3
         
+        # Shooting system
+        self.shoot_cooldown = 0
+        self.new_bullets = []  # List to hold bullets created this frame
+        
         # Gamepad support
         self.gamepad = None
         self._init_gamepad()
@@ -46,6 +50,9 @@ class Player(Entity):
         
     def update(self):
         """Update player position and state"""
+        # Clear bullets from previous frame
+        self.new_bullets = []
+        
         # Get current input state
         keys = pygame.key.get_pressed()
         gamepad_input = self._get_gamepad_input()
@@ -84,6 +91,9 @@ class Player(Entity):
         # Screen is 180x240, so bounds are -90 to +90 horizontally, -120 to +120 vertically
         self.position.x = max(-90 + self.radius, min(self.position.x, 90 - self.radius))
         self.position.y = max(-120 + self.radius, min(self.position.y, 120 - self.radius))
+        
+        # Handle shooting
+        self._handle_shooting(keys, gamepad_input)
         
         # Update invincibility
         if self.invincible:
@@ -124,16 +134,27 @@ class Player(Entity):
         """Get the center position for bullet spawning"""
         return self.position
     
-    def wants_to_shoot(self):
-        """Check if player wants to shoot (keyboard or gamepad)"""
-        # Check keyboard input
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE]:
-            return True
-            
-        # Check gamepad input
-        gamepad_input = self._get_gamepad_input()
-        if gamepad_input.get('shoot', False):
-            return True
-            
-        return False
+    def _handle_shooting(self, keys, gamepad_input):
+        """Handle player shooting logic"""
+        # Update shoot cooldown
+        if self.shoot_cooldown > 0:
+            self.shoot_cooldown -= 1
+        
+        # Check for shooting input
+        shoot_pressed = (keys[pygame.K_SPACE] or 
+                        gamepad_input.get('shoot', False))
+        
+        # Create bullet if shooting and cooldown is ready
+        if shoot_pressed and self.shoot_cooldown <= 0:
+            from bullets import PlayerBullet
+            bullet_pos = Vector2(self.position.x, 
+                               self.position.y - self.radius)
+            bullet = PlayerBullet(bullet_pos)
+            self.new_bullets.append(bullet)
+            self.shoot_cooldown = 10
+    
+    def get_new_bullets(self):
+        """Get bullets created this frame and clear the list"""
+        bullets = self.new_bullets[:]
+        self.new_bullets = []
+        return bullets

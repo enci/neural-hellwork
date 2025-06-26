@@ -56,7 +56,7 @@ class Game(gym.Env):
         
         # Create entities
         self.player = Player()
-        self.enemy = Enemy()
+        self.enemy = Enemy()  # Back to single enemy
         
         # Add entities to manager
         self.entity_manager.add_entity(self.player)
@@ -69,7 +69,6 @@ class Game(gym.Env):
         self.win = False
         self.interpreter = TalakatInterpreter()
         self.current_pattern = PATTERNS[self.enemy.pattern_index]
-        self.shoot_cooldown = 0
         self.enemy_shoot_timer = 0
         self.spawn_enemy_timer = 0
         self.pattern_change_effect_timer = 0
@@ -103,39 +102,30 @@ class Game(gym.Env):
         if self.game_over:
             return
             
-        # Update player (now handles input internally)
+        # Update player (now handles input and shooting internally)
         self.player.update()
         
-        # Player shooting (check via player method)
-        shoot_pressed = self.player.wants_to_shoot()
-        
-        if shoot_pressed and self.shoot_cooldown <= 0:
-            bullet_pos = Vector2(self.player.position.x, 
-                       self.player.position.y - self.player.radius)
-            bullet = PlayerBullet(bullet_pos)
+        # Get any new bullets from player and add them to entity manager
+        new_bullets = self.player.get_new_bullets()
+        for bullet in new_bullets:
             self.entity_manager.add_entity(bullet)
-            self.shoot_cooldown = 10
             
-        if self.shoot_cooldown > 0:
-            self.shoot_cooldown -= 1
-            
-        # Update player bullets
+        # Update player bullets and remove offscreen ones
         player_bullets = self.entity_manager.get_entities_by_tag(EntityTag.PLAYER_BULLET)
         for bullet in player_bullets[:]:
             bullet.update()
-            
-            # Check for collision with enemy
-            if bullet.collides_with(self.enemy):
-                bullet.deactivate()
-                if self.enemy.hit():
-                    self.score += 100
-                    self.level += 1
-                    self.spawn_enemy_timer = 120
-                    break
-                    
-            # Remove offscreen bullets
             if bullet.is_offscreen():
                 bullet.deactivate()
+        
+        # Update enemy bullets and remove offscreen ones
+        enemy_bullets = self.entity_manager.get_entities_by_tag(EntityTag.ENEMY_BULLET)
+        for bullet in enemy_bullets[:]:
+            bullet.update()
+            if bullet.is_offscreen():
+                bullet.deactivate()
+        
+        # Handle all collision interactions
+        self.add_collision_handlers()
                 
         # Enemy generation and bullet pattern update
         if self.spawn_enemy_timer > 0:
@@ -151,19 +141,20 @@ class Game(gym.Env):
                 self.pattern_change_effect_timer = 30
         else:
             # Update enemy
-            pattern_changed = self.enemy.update()
+            self.enemy.update()
             
             # Check if pattern changed
-            if pattern_changed:
+            if self.enemy.did_pattern_change():
                 self.current_pattern = PATTERNS[self.enemy.pattern_index]
                 self.interpreter.reset()
                 self.pattern_change_effect_timer = 30
             
-            # Generate enemy bullets based on pattern
+            # Generate enemy bullets based on pattern (only when enemy is in position)
             self.enemy_shoot_timer += 1
             if self.enemy_shoot_timer >= 3:
                 self.enemy_shoot_timer = 0
-                if self.pattern_change_effect_timer <= 0:
+                if (self.pattern_change_effect_timer <= 0 and 
+                    not self.enemy.is_entering):  # Don't shoot while entering
                     new_bullets = self.interpreter.get_bullets(self.current_pattern, self.enemy.position)
                     for bullet in new_bullets:
                         self.entity_manager.add_entity(bullet)
@@ -171,23 +162,6 @@ class Game(gym.Env):
         # Update pattern change effect timer
         if self.pattern_change_effect_timer > 0:
             self.pattern_change_effect_timer -= 1
-        
-        # Update enemy bullets
-        enemy_bullets = self.entity_manager.get_entities_by_tag(EntityTag.ENEMY_BULLET)
-        for bullet in enemy_bullets[:]:
-            bullet.update()
-            
-            # Check for collision with player
-            if bullet.collides_with(self.player):
-                bullet.deactivate()
-                if self.player.hit():
-                    if self.player.lives <= 0:
-                        self.game_over = True
-                break
-                
-            # Remove offscreen bullets
-            if bullet.is_offscreen():
-                bullet.deactivate()
         
         # Clean up inactive entities
         self.entity_manager.cleanup_inactive()
@@ -264,3 +238,65 @@ class Game(gym.Env):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r and self.game_over:
                 self.__init__()  # Reset the game
+                
+        elif event.type == pygame.JOYBUTTONDOWN:
+            # Handle gamepad restart (Start button is usually button 7)
+            if event.button == 7 and self.game_over:  # Start button
+                self.__init__()  # Reset the game
+    
+    def test_collisions(self, entities_a, entities_b, collision_handler):
+        """
+        Test collisions between two lists of entities and perform custom operations
+        
+        Args:
+            entities_a: First list of entities
+            entities_b: Second list of entities (can be a single entity or list)
+            collision_handler: Function that takes (entity_a, entity_b) and handles the collision
+        """
+        # Handle case where entities_b is a single entity
+        if not isinstance(entities_b, list):
+            entities_b = [entities_b]
+            
+        for entity_a in entities_a[:]:  # Use slice copy to allow modification during iteration
+            if not entity_a.is_active():
+                continue
+                
+            for entity_b in entities_b[:]:
+                if not entity_b.is_active():
+                    continue
+                    
+                if entity_a.collides_with(entity_b):
+                    # Call the collision handler - no need for return value
+                    collision_handler(entity_a, entity_b)
+    
+    def add_collision_handlers(self):
+        """Add collision handlers using the generic collision system"""
+        
+        # Player bullets vs enemy
+        player_bullets = self.entity_manager.get_entities_by_tag(EntityTag.PLAYER_BULLET)
+        def handle_bullet_enemy_collision(bullet, enemy):
+            bullet.deactivate()
+            if enemy.hit():
+                self.score += 100
+                self.total_damage_dealt += 1
+                self.level += 1
+                self.spawn_enemy_timer = 180  # 3 seconds instead of 2
+                
+                # Clear all remaining player bullets when enemy dies
+                remaining_bullets = self.entity_manager.get_entities_by_tag(EntityTag.PLAYER_BULLET)
+                for remaining_bullet in remaining_bullets:
+                    remaining_bullet.deactivate()
+        
+        self.test_collisions(player_bullets, self.enemy, handle_bullet_enemy_collision)
+        
+        # Enemy bullets vs player
+        enemy_bullets = self.entity_manager.get_entities_by_tag(EntityTag.ENEMY_BULLET)
+        def handle_bullet_player_collision(bullet, player):
+            bullet.deactivate()
+            player.hit()  # Player handles its own state
+        
+        self.test_collisions(enemy_bullets, self.player, handle_bullet_player_collision)
+        
+        # Check game over condition separately
+        if self.player.lives <= 0:
+            self.game_over = True
