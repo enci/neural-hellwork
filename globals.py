@@ -1,8 +1,8 @@
 # store all global variables in one place
 
 class Globals:
-    screen_width = 800
-    screen_height = 600
+    screen_width = 180 * 3
+    screen_height = 240 * 3
     bg_color = (0, 0, 0)
     player_speed = 5
     bullet_speed = 10
