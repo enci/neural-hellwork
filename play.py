@@ -38,9 +38,9 @@ def main():
         
         # Fill the screen with background color
         screen.fill(Globals.bg_color)
-        
-        # Game logic would go here
-        # game.play()
+                
+        game.update()
+        game.draw(screen)
         
         # Update the display
         pygame.display.flip()
