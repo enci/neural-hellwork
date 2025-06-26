@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Neural Hellwork",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/play.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [],
+            "env": {},
+            "stopOnEntry": false,
+            "justMyCode": true
+        }
+    ]
+}
