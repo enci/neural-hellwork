@@ -1,13 +1,13 @@
 import pygame
+from pygame.math import Vector2
 import math
 import random
-from vec2 import vec2
 from globals import Globals
 from entity import Entity, EntityTag
 
 class Enemy(Entity):
     def __init__(self):
-        super().__init__(position=vec2(90, 30), tag=EntityTag.ENEMY)
+        super().__init__(position=Vector2(0, -90), tag=EntityTag.ENEMY)  # Center-top
         self.radius = 8  # Scaled down for 180x240 resolution
         self.color = (255, 255, 255)  # White
         self.health = 100
@@ -24,8 +24,9 @@ class Enemy(Entity):
         # Simple movement - side to side
         self.position.x += math.sin(pygame.time.get_ticks() / 1000) * self.speed
         
-        # Keep within bounds (180x240 resolution)
-        self.position.x = max(self.radius, min(self.position.x, 180 - self.radius))
+        # Keep within bounds (centered coordinate system)
+        # Screen is 180 wide, so bounds are -90 to +90
+        self.position.x = max(-90 + self.radius, min(self.position.x, 90 - self.radius))
         
         # Update pattern switch timer
         self.pattern_switch_timer -= 1
@@ -39,11 +40,17 @@ class Enemy(Entity):
             return True  # Signal that pattern changed
         return False  # No pattern change
         
-    def draw(self, surface):
-        """Draw the enemy"""
+    def draw(self, surface, camera_offset=None):
+        """Draw the enemy with camera offset"""
+        # Calculate screen position with camera offset
+        if camera_offset is None:
+            camera_offset = Vector2(0, 0)
+        
+        screen_pos = self.position + camera_offset
+        
         # For now, draw as a circle - will be replaced with sprite later
         pygame.draw.circle(surface, self.color, 
-                         (int(self.position.x), int(self.position.y)), 
+                         (int(screen_pos.x), int(screen_pos.y)), 
                          self.radius)
         
         # Health bar (scaled for 180x240)
@@ -51,8 +58,8 @@ class Enemy(Entity):
         bar_height = 2
         fill_width = (self.health / self.max_health) * bar_width
         
-        bar_x = self.position.x - bar_width // 2
-        bar_y = self.position.y + self.radius + 5
+        bar_x = screen_pos.x - bar_width // 2
+        bar_y = screen_pos.y + self.radius + 5
         
         pygame.draw.rect(surface, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 1)
         pygame.draw.rect(surface, (255, 0, 0), (bar_x, bar_y, fill_width, bar_height))
@@ -61,8 +68,8 @@ class Enemy(Entity):
         pattern_switch_percentage = self.pattern_switch_timer / 300
         indicator_width = 15
         indicator_height = 1
-        indicator_x = self.position.x - indicator_width // 2
-        indicator_y = self.position.y + self.radius + 10
+        indicator_x = screen_pos.x - indicator_width // 2
+        indicator_y = screen_pos.y + self.radius + 10
         
         pygame.draw.rect(surface, (255, 255, 255), (indicator_x, indicator_y, indicator_width, indicator_height), 1)
         pygame.draw.rect(surface, (255, 255, 0), (indicator_x, indicator_y, indicator_width * pattern_switch_percentage, indicator_height))

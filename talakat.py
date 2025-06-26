@@ -1,7 +1,8 @@
 import random
 import math
 from enum import Enum
-from vec2 import vec2 
+
+import pygame
 from bullets import Bullet
 
 class TokenType(Enum):
@@ -194,8 +195,8 @@ class TalakatInterpreter:
                 vel_y = math.sin(rad_angle) * speed
                 
                 new_bullet = Bullet(
-                    vec2(enemy_pos.x, enemy_pos.y),
-                    vec2(vel_x, vel_y),
+                    pygame.math.Vector2(enemy_pos.x, enemy_pos.y),
+                    pygame.math.Vector2(vel_x, vel_y),
                     size, color
                 )
                 new_bullets.append(new_bullet)

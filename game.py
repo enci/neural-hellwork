@@ -1,7 +1,7 @@
 from typing import Any
 import pygame
+from pygame.math import Vector2
 import numpy as np
-from vec2 import vec2
 from player import Player
 from enemy import Enemy
 from bullets import PlayerBullet
@@ -130,7 +130,7 @@ class Game(gym.Env):
                         gamepad_input.get('button_a', False))
         
         if shoot_pressed and self.shoot_cooldown <= 0:
-            bullet_pos = vec2(self.player.position.x, 
+            bullet_pos = Vector2(self.player.position.x, 
                        self.player.position.y - self.player.radius)
             bullet = PlayerBullet(bullet_pos)
             self.entity_manager.add_entity(bullet)
@@ -226,11 +226,16 @@ class Game(gym.Env):
         # Clear with background color
         game_surface.fill(Globals.bg_color)
 
-        # draw a red circle in the middle of the screen
-        pygame.draw.circle(game_surface, (255, 0, 0), (90, 120), 10)
+        # Set up camera offset for centered coordinates (0,0 at center)
+        # Game resolution is 180x240, so center is at (90, 120)
+        camera_offset = Vector2(90, 120)
+
+        # draw a red circle at the center (0,0 in our coordinate system)
+        center_screen_pos = Vector2(0, 0) + camera_offset
+        pygame.draw.circle(game_surface, (255, 0, 0), (int(center_screen_pos.x), int(center_screen_pos.y)), 10)
         
-        # Draw all entities using entity manager
-        self.entity_manager.draw_all(game_surface)
+        # Draw all entities using entity manager with camera offset
+        self.entity_manager.draw_all(game_surface, camera_offset)
             
         # Draw UI
         self._draw_ui(game_surface)

@@ -41,10 +41,10 @@ class EntityManager:
         for entity in self.get_active_entities():
             entity.update()
     
-    def draw_all(self, surface):
-        """Draw all active entities"""
+    def draw_all(self, surface, camera_offset=None):
+        """Draw all active entities with camera offset"""
         for entity in self.get_active_entities():
-            entity.draw(surface)
+            entity.draw(surface, camera_offset)
     
     def cleanup_inactive(self):
         """Remove all inactive entities"""

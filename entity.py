@@ -1,6 +1,6 @@
 import pygame
+from pygame.math import Vector2
 from abc import ABC, abstractmethod
-from vec2 import vec2
 
 class EntityTag:
     """Entity tag constants"""
@@ -13,7 +13,7 @@ class Entity(ABC):
     """Base class for all game entities"""
     
     def __init__(self, position=None, tag=EntityTag.PLAYER):
-        self.position = position if position else vec2(0, 0)
+        self.position = position if position else Vector2(0, 0)
         self.tag = tag  # Integer identifier (use EntityTag constants)
         self.active = True  # Whether the entity should be updated/drawn
         self.radius = 1  # Default collision radius
@@ -25,7 +25,7 @@ class Entity(ABC):
         pass
     
     @abstractmethod
-    def draw(self, surface, center_x=0, center_y=0):
+    def draw(self, surface, camera_offset=None):
         """Draw the entity. Must be implemented by subclasses."""
         pass
     
@@ -46,8 +46,7 @@ class Entity(ABC):
         if not isinstance(other, Entity):
             return False
         
-        distance = ((self.position.x - other.position.x) ** 2 + 
-                   (self.position.y - other.position.y) ** 2) ** 0.5
+        distance = self.position.distance_to(other.position)
         return distance < (self.radius + other.radius)
     
     def is_offscreen(self, bounds_left=-90, bounds_right=90, bounds_top=-120, bounds_bottom=120):

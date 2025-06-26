@@ -1,11 +1,11 @@
 import pygame
-from vec2 import vec2
+from pygame.math import Vector2
 from globals import Globals
 from entity import Entity, EntityTag
 
 class Player(Entity):
     def __init__(self):
-        super().__init__(position=vec2(90, 200), tag=EntityTag.PLAYER)
+        super().__init__(position=Vector2(0, 80), tag=EntityTag.PLAYER)  # Center-bottom
         self.radius = 5  # Scaled down for 180x240 resolution
         self.color = (255, 255, 255)  # White
         self.speed = Globals.player_speed
@@ -42,12 +42,13 @@ class Player(Entity):
                 move_y += stick_y
         
         # Apply movement
-        self.position.x += move_x * self.speed
-        self.position.y += move_y * self.speed
+        movement = Vector2(move_x, move_y) * self.speed
+        self.position += movement
             
-        # Keep player within bounds (180x240 resolution)
-        self.position.x = max(self.radius, min(self.position.x, 180 - self.radius))
-        self.position.y = max(self.radius, min(self.position.y, 240 - self.radius))
+        # Keep player within bounds (centered coordinate system)
+        # Screen is 180x240, so bounds are -90 to +90 horizontally, -120 to +120 vertically
+        self.position.x = max(-90 + self.radius, min(self.position.x, 90 - self.radius))
+        self.position.y = max(-120 + self.radius, min(self.position.y, 120 - self.radius))
         
         # Update invincibility
         if self.invincible:
@@ -55,15 +56,21 @@ class Player(Entity):
             if self.invincible_timer <= 0:
                 self.invincible = False
                 
-    def draw(self, surface):
-        """Draw the player"""
+    def draw(self, surface, camera_offset=None):
+        """Draw the player with camera offset"""
         # Blinking effect when invincible
         if self.invincible and self.invincible_timer % 10 < 5:
             return
         
+        # Calculate screen position with camera offset
+        if camera_offset is None:
+            camera_offset = Vector2(0, 0)
+        
+        screen_pos = self.position + camera_offset
+        
         # For now, draw as a circle - will be replaced with sprite later
         pygame.draw.circle(surface, self.color, 
-                         (int(self.position.x), int(self.position.y)), 
+                         (int(screen_pos.x), int(screen_pos.y)), 
                          self.radius)
         
     def hit(self):
@@ -73,8 +80,8 @@ class Player(Entity):
             self.invincible = True
             self.invincible_timer = 90  # 1.5 seconds at 60 FPS
             
-            # Reset position when hit
-            self.position = vec2(90, 200)
+            # Reset position when hit (center-bottom)
+            self.position = Vector2(0, 80)
             return True
         return False
     
