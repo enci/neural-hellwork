@@ -46,7 +46,7 @@ def main():
         pygame.display.flip()
         
         # Control frame rate (60 FPS)
-        #clock.tick(60)
+        clock.tick(60)
     
     # Clean up
     game.end()
