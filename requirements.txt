@@ -3,3 +3,7 @@ wheel @ file:///opt/homebrew/Cellar/python%403.12/3.12.5/libexec/wheel-0.44.0-py
 pygame>=2.1.0
 torch>=2.0.0
 numpy>=1.21.0
+gymnasium>=1.1.1
+stable-baselines3>=2.6.0
+opencv-python>=4.1.0.86
+
