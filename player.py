@@ -1,11 +1,12 @@
 import pygame
 from vec2 import vec2
 from globals import Globals
+from entity import Entity, EntityTag
 
-class Player:
+class Player(Entity):
     def __init__(self):
+        super().__init__(position=vec2(90, 200), tag=EntityTag.PLAYER)
         self.radius = 5  # Scaled down for 180x240 resolution
-        self.position = vec2(90, 200)  # Bottom center of 180x240 screen
         self.color = (255, 255, 255)  # White
         self.speed = Globals.player_speed
         self.invincible = False

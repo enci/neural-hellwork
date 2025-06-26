@@ -1,11 +1,12 @@
 import pygame
 from vec2 import vec2
 from globals import Globals
+from entity import Entity, EntityTag
 
-class Bullet:
+class Bullet(Entity):
     """Base bullet class for enemy bullets"""
     def __init__(self, position, velocity, radius, color=(255, 255, 255)):
-        self.position = position
+        super().__init__(position=position, tag=EntityTag.ENEMY_BULLET)
         self.velocity = velocity
         self.radius = radius
         self.color = color
@@ -20,22 +21,11 @@ class Bullet:
         pygame.draw.circle(surface, self.color, 
                          (int(self.position.x), int(self.position.y)), 
                          int(self.radius))
-        
-    def is_offscreen(self):
-        """Check if bullet is offscreen (180x240 resolution)"""
-        return (self.position.x < -self.radius or self.position.x > 180 + self.radius or
-                self.position.y < -self.radius or self.position.y > 240 + self.radius)
-                
-    def collides_with(self, other):
-        """Check collision with another circular object"""
-        distance = ((self.position.x - other.position.x) ** 2 + 
-                   (self.position.y - other.position.y) ** 2) ** 0.5
-        return distance < (self.radius + other.radius)
 
-class PlayerBullet:
+class PlayerBullet(Entity):
     """Player bullet class"""
     def __init__(self, position):
-        self.position = position
+        super().__init__(position=position, tag=EntityTag.PLAYER_BULLET)
         self.velocity = vec2(0, -Globals.bullet_speed)  # Upward movement
         self.radius = 2  # Scaled down for 180x240 resolution
         self.color = (255, 255, 0)  # Yellow
@@ -51,12 +41,6 @@ class PlayerBullet:
                          (int(self.position.x), int(self.position.y)), 
                          self.radius)
         
-    def is_offscreen(self):
+    def is_offscreen(self, bounds_left=-90, bounds_right=90, bounds_top=-120, bounds_bottom=120):
         """Check if bullet is offscreen (upward movement)"""
-        return self.position.y < -self.radius
-        
-    def collides_with(self, other):
-        """Check collision with another circular object"""
-        distance = ((self.position.x - other.position.x) ** 2 + 
-                   (self.position.y - other.position.y) ** 2) ** 0.5
-        return distance < (self.radius + other.radius)
+        return self.position.y < bounds_top - self.radius

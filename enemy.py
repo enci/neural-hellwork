@@ -3,11 +3,12 @@ import math
 import random
 from vec2 import vec2
 from globals import Globals
+from entity import Entity, EntityTag
 
-class Enemy:
+class Enemy(Entity):
     def __init__(self):
+        super().__init__(position=vec2(90, 30), tag=EntityTag.ENEMY)
         self.radius = 8  # Scaled down for 180x240 resolution
-        self.position = vec2(90, 30)  # Top center of 180x240 screen
         self.color = (255, 255, 255)  # White
         self.health = 100
         self.max_health = 100

@@ -1,11 +1,14 @@
 from typing import Any
 import pygame
+import numpy as np
 from vec2 import vec2
 from player import Player
 from enemy import Enemy
 from bullets import PlayerBullet
 from talakat import TalakatInterpreter, PATTERNS
 from globals import Globals
+from entity import EntityTag
+from entity_manager import EntityManager
 import gymnasium as gym
 from typing import Optional
 
@@ -26,7 +29,7 @@ class Game(gym.Env):
 
         self.action_space = gym.spaces.Discrete(10)
         self.observation_space = gym.spaces.Dict({
-            'total_damage_dealt': gym.spaces.Box(low=0, high=float('inf'), shape=(1,), dtype=float),
+            'total_damage_dealt': gym.spaces.Box(low=0, high=float('inf'), shape=(1,), dtype=np.float32),
             'player_hp': gym.spaces.Discrete(4)  # 0 to 3 lives
         })
 
@@ -53,10 +56,18 @@ class Game(gym.Env):
 
     def _reset(self):
         """Reset the game state"""
+        # Initialize entity manager
+        self.entity_manager = EntityManager()
+        
+        # Create entities
         self.player = Player()
         self.enemy = Enemy()
-        self.enemy_bullets = []
-        self.player_bullets = []
+        
+        # Add entities to manager
+        self.entity_manager.add_entity(self.player)
+        self.entity_manager.add_entity(self.enemy)
+        
+        # Game state
         self.score = 0
         self.level = 1
         self.game_over = False
@@ -104,6 +115,7 @@ class Game(gym.Env):
         
     def update(self):
         """Update game state"""
+
         if self.game_over:
             return
             
@@ -120,19 +132,21 @@ class Game(gym.Env):
         if shoot_pressed and self.shoot_cooldown <= 0:
             bullet_pos = vec2(self.player.position.x, 
                        self.player.position.y - self.player.radius)
-            self.player_bullets.append(PlayerBullet(bullet_pos))
+            bullet = PlayerBullet(bullet_pos)
+            self.entity_manager.add_entity(bullet)
             self.shoot_cooldown = 10
             
         if self.shoot_cooldown > 0:
             self.shoot_cooldown -= 1
             
         # Update player bullets
-        for bullet in self.player_bullets[:]:
+        player_bullets = self.entity_manager.get_entities_by_tag(EntityTag.PLAYER_BULLET)
+        for bullet in player_bullets[:]:
             bullet.update()
             
             # Check for collision with enemy
             if bullet.collides_with(self.enemy):
-                self.player_bullets.remove(bullet)
+                bullet.deactivate()
                 if self.enemy.hit():
                     self.score += 100
                     self.level += 1
@@ -141,14 +155,17 @@ class Game(gym.Env):
                     
             # Remove offscreen bullets
             if bullet.is_offscreen():
-                self.player_bullets.remove(bullet)
+                bullet.deactivate()
                 
         # Enemy generation and bullet pattern update
         if self.spawn_enemy_timer > 0:
             self.spawn_enemy_timer -= 1
             if self.spawn_enemy_timer <= 0:
+                # Remove old enemy and create new one
+                self.entity_manager.remove_entity(self.enemy)
                 self.enemy = Enemy()
                 self.enemy.health = min(100 + (self.level - 1) * 20, 300)
+                self.entity_manager.add_entity(self.enemy)
                 self.current_pattern = PATTERNS[self.enemy.pattern_index]
                 self.interpreter.reset()
                 self.pattern_change_effect_timer = 30
@@ -168,19 +185,21 @@ class Game(gym.Env):
                 self.enemy_shoot_timer = 0
                 if self.pattern_change_effect_timer <= 0:
                     new_bullets = self.interpreter.get_bullets(self.current_pattern, self.enemy.position)
-                    self.enemy_bullets.extend(new_bullets)
+                    for bullet in new_bullets:
+                        self.entity_manager.add_entity(bullet)
         
         # Update pattern change effect timer
         if self.pattern_change_effect_timer > 0:
             self.pattern_change_effect_timer -= 1
         
         # Update enemy bullets
-        for bullet in self.enemy_bullets[:]:
+        enemy_bullets = self.entity_manager.get_entities_by_tag(EntityTag.ENEMY_BULLET)
+        for bullet in enemy_bullets[:]:
             bullet.update()
             
             # Check for collision with player
             if bullet.collides_with(self.player):
-                self.enemy_bullets.remove(bullet)
+                bullet.deactivate()
                 if self.player.hit():
                     if self.player.lives <= 0:
                         self.game_over = True
@@ -188,7 +207,10 @@ class Game(gym.Env):
                 
             # Remove offscreen bullets
             if bullet.is_offscreen():
-                self.enemy_bullets.remove(bullet)
+                bullet.deactivate()
+        
+        # Clean up inactive entities
+        self.entity_manager.cleanup_inactive()
                 
         # Check win condition
         if self.level > 10:
@@ -199,21 +221,16 @@ class Game(gym.Env):
         """Draw everything to the screen"""
         # Create a surface for the actual game resolution
         game_surface = pygame.Surface((Globals.screen_width // 3, Globals.screen_height // 3))
+
         
         # Clear with background color
         game_surface.fill(Globals.bg_color)
+
+        # draw a red circle in the middle of the screen
+        pygame.draw.circle(game_surface, (255, 0, 0), (90, 120), 10)
         
-        # Draw player and enemy
-        self.player.draw(game_surface)
-        if self.spawn_enemy_timer <= 0:
-            self.enemy.draw(game_surface)
-        
-        # Draw bullets
-        for bullet in self.enemy_bullets:
-            bullet.draw(game_surface)
-            
-        for bullet in self.player_bullets:
-            bullet.draw(game_surface)
+        # Draw all entities using entity manager
+        self.entity_manager.draw_all(game_surface)
             
         # Draw UI
         self._draw_ui(game_surface)
