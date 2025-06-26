@@ -1,11 +1,15 @@
-import pygame
-import torch
-import numpy as np
+from globals import Globals
 
 class Game:
     def __init__(self):
         self.score = 0
-        self.level = 1
+        print("Globals.screen_width: ", Globals.screen_width)
+        print("Globals.screen_height: ", Globals.screen_height)
+        print("Globals.bg_color: ", Globals.bg_color)
+        print("Globals.player_speed: ", Globals.player_speed)
+        print("Globals.bullet_speed: ", Globals.bullet_speed)
+        print("Globals.enemy_speed: ", Globals.enemy_speed)
+
 
     def start(self):
         print("Game started!")
@@ -16,12 +20,4 @@ class Game:
 
     def end(self):
         print("Game over! Your score:", self.score)
-
-def main():
-    game = Game()
-    game.start()
-    game.play()
-    game.end()
-
-if __name__ == "__main__":
-    main()
+        
