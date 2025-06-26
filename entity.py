@@ -20,7 +20,7 @@ class Entity(ABC):
         self.color = (255, 255, 255)  # Default white color
         
     @abstractmethod
-    def update(self, *args, **kwargs):
+    def update(self):
         """Update the entity's state. Must be implemented by subclasses."""
         pass
     

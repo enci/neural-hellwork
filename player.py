@@ -13,8 +13,43 @@ class Player(Entity):
         self.invincible_timer = 0
         self.lives = 3
         
-    def update(self, keys, gamepad_input=None):
+        # Gamepad support
+        self.gamepad = None
+        self._init_gamepad()
+        
+    def _init_gamepad(self):
+        """Initialize gamepad if available"""
+        if pygame.joystick.get_count() > 0:
+            self.gamepad = pygame.joystick.Joystick(0)
+            self.gamepad.init()
+    
+    def _get_gamepad_input(self):
+        """Get current gamepad input state"""
+        if not self.gamepad:
+            return {}
+            
+        gamepad_input = {}
+        
+        # Left stick for movement
+        gamepad_input['left_stick_x'] = self.gamepad.get_axis(0)
+        gamepad_input['left_stick_y'] = self.gamepad.get_axis(1)
+        
+        # Buttons for shooting (A button or right trigger)
+        try:
+            gamepad_input['shoot'] = (self.gamepad.get_button(0) or  # A button
+                                    self.gamepad.get_axis(5) > 0.5)  # Right trigger
+        except pygame.error:
+            # Handle cases where controller doesn't have all expected inputs
+            gamepad_input['shoot'] = False
+            
+        return gamepad_input
+        
+    def update(self):
         """Update player position and state"""
+        # Get current input state
+        keys = pygame.key.get_pressed()
+        gamepad_input = self._get_gamepad_input()
+        
         # Player movement - keyboard
         move_x = 0
         move_y = 0
@@ -88,3 +123,17 @@ class Player(Entity):
     def get_center(self):
         """Get the center position for bullet spawning"""
         return self.position
+    
+    def wants_to_shoot(self):
+        """Check if player wants to shoot (keyboard or gamepad)"""
+        # Check keyboard input
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE]:
+            return True
+            
+        # Check gamepad input
+        gamepad_input = self._get_gamepad_input()
+        if gamepad_input.get('shoot', False):
+            return True
+            
+        return False

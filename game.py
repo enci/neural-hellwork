@@ -18,12 +18,7 @@ class Game(gym.Env):
         
         # Initialize joystick support
         pygame.joystick.init()
-        self.joysticks = []
-        for i in range(pygame.joystick.get_count()):
-            joystick = pygame.joystick.Joystick(i)
-            joystick.init()
-            self.joysticks.append(joystick)
-
+        
         # Set up the environment
         super().__init__()
 
@@ -101,17 +96,6 @@ class Game(gym.Env):
         info = self._get_info()
 
         return observation, reward, terminated, truncated, info
-
-    def get_gamepad_input(self):
-        """Get gamepad input if available"""
-        gamepad_input = {}
-        if len(self.joysticks) > 0:
-            joystick = self.joysticks[0]
-            gamepad_input['left_stick_x'] = joystick.get_axis(0)
-            gamepad_input['left_stick_y'] = joystick.get_axis(1)
-            gamepad_input['button_a'] = joystick.get_button(0)
-            gamepad_input['button_start'] = joystick.get_button(7)
-        return gamepad_input
         
     def update(self):
         """Update game state"""
@@ -119,15 +103,11 @@ class Game(gym.Env):
         if self.game_over:
             return
             
-        keys = pygame.key.get_pressed()
-        gamepad_input = self.get_gamepad_input()
+        # Update player (now handles input internally)
+        self.player.update()
         
-        # Update player
-        self.player.update(keys, gamepad_input)
-        
-        # Player shooting
-        shoot_pressed = (keys[pygame.K_SPACE] or 
-                        gamepad_input.get('button_a', False))
+        # Player shooting (check via player method)
+        shoot_pressed = self.player.wants_to_shoot()
         
         if shoot_pressed and self.shoot_cooldown <= 0:
             bullet_pos = Vector2(self.player.position.x, 
@@ -284,8 +264,3 @@ class Game(gym.Env):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r and self.game_over:
                 self.__init__()  # Reset the game
-                
-        elif event.type == pygame.JOYBUTTONDOWN:
-            if len(self.joysticks) > 0:
-                if event.button == 7 and self.game_over:  # Start button
-                    self.__init__()  # Reset the game
