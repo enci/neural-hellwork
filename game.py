@@ -1,3 +1,4 @@
+from typing import Any
 import pygame
 from vec2 import vec2
 from player import Player
@@ -5,9 +6,53 @@ from enemy import Enemy
 from bullets import PlayerBullet
 from talakat import TalakatInterpreter, PATTERNS
 from globals import Globals
+import gymnasium as gym
+from typing import Optional
 
-class Game:
+class Game(gym.Env):
     def __init__(self):
+        self._reset()
+        
+        # Initialize joystick support
+        pygame.joystick.init()
+        self.joysticks = []
+        for i in range(pygame.joystick.get_count()):
+            joystick = pygame.joystick.Joystick(i)
+            joystick.init()
+            self.joysticks.append(joystick)
+
+        # Set up the environment
+        super().__init__()
+
+        self.action_space = gym.spaces.Discrete(10)
+        self.observation_space = gym.spaces.Dict({
+            'total_damage_dealt': gym.spaces.Box(low=0, high=float('inf'), shape=(1,), dtype=float),
+            'player_hp': gym.spaces.Discrete(4)  # 0 to 3 lives
+        })
+
+
+    def _get_obs(self):
+        """Get the current observation of the game state"""
+        obs = {
+            'total_damage_dealt': self.total_damage_dealt,
+            'player_hp': self.player.lives
+        }
+        return obs
+
+    def _get_info(self):
+        return {}
+
+    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None): # type: ignore
+        super().reset(seed=seed, options=options)
+        self._reset()
+
+        observation = self._get_obs()
+        info = self._get_info()
+        return observation, info
+        
+
+    def _reset(self):
+        """Reset the game state"""
         self.player = Player()
         self.enemy = Enemy()
         self.enemy_bullets = []
@@ -22,23 +67,30 @@ class Game:
         self.enemy_shoot_timer = 0
         self.spawn_enemy_timer = 0
         self.pattern_change_effect_timer = 0
+        self.total_damage_dealt = 0
+
+    def step(self, action: Any):
+        """Perform a game step based on the action"""
+        if self.game_over:
+            return self._get_obs(), 0, True, False, self._get_info()
         
-        # Initialize joystick support
-        pygame.joystick.init()
-        self.joysticks = []
-        for i in range(pygame.joystick.get_count()):
-            joystick = pygame.joystick.Joystick(i)
-            joystick.init()
-            self.joysticks.append(joystick)
+        # Update game state
+        self.update()
         
-    def start(self):
-        """Initialize the game"""
-        pass
+        # Calculate reward
+        reward = 0
+        if self.win:
+            reward = 1000
+        elif self.game_over:
+            reward = -1000
         
-    def end(self):
-        """Cleanup when game ends"""
-        pass
-        
+        observation = self._get_obs()
+        terminated = self.game_over
+        truncated = False  # No truncation logic in this game
+        info = self._get_info()
+
+        return observation, reward, terminated, truncated, info
+
     def get_gamepad_input(self):
         """Get gamepad input if available"""
         gamepad_input = {}

@@ -5,7 +5,11 @@
 import gymnasium as gym
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
+
 # from torch import nn
+
+#from game import Game
+import game
 
 
 # class PolicyNetwork(nn.Module):
@@ -30,6 +34,12 @@ from stable_baselines3.common.env_util import make_vec_env
 # print("action space: ", env.action_space)
 #
 # print(env.render())
+
+gym.register("GameEnv", entry_point="game:Game")
+
+# Create the environment
+env = gym.make("GameEnv")
+
 
 # Parallel environments
 vec_env = make_vec_env("FrozenLake-v1", n_envs=4)

@@ -23,7 +23,7 @@ def main():
     
     # Create game instance
     game = Game()
-    game.start()
+    #game.start()
     
     # Game loop
     running = True
@@ -49,7 +49,6 @@ def main():
         clock.tick(60)
     
     # Clean up
-    game.end()
     pygame.quit()
     sys.exit()
 
