@@ -4,8 +4,8 @@ from globals import Globals
 from entity import Entity, EntityTag
 
 class Player(Entity):
-    def __init__(self):
-        super().__init__(position=Vector2(0, 80), tag=EntityTag.PLAYER)  # Center-bottom
+    def __init__(self, entity_manager):
+        super().__init__(entity_manager, position=Vector2(0, 80), tag=EntityTag.PLAYER)  # Center-bottom
         self.radius = 5  # Scaled down for 180x240 resolution
         self.color = (255, 255, 255)  # White
         self.speed = Globals.player_speed
@@ -15,7 +15,6 @@ class Player(Entity):
         
         # Shooting system
         self.shoot_cooldown = 0
-        self.new_bullets = []  # List to hold bullets created this frame
         
         # Gamepad support
         self.gamepad = None
@@ -23,6 +22,10 @@ class Player(Entity):
         
     def _init_gamepad(self):
         """Initialize gamepad if available"""
+        # Initialize joystick subsystem if not already initialized
+        if not pygame.get_init() or not pygame.joystick.get_init():
+            pygame.joystick.init()
+            
         if pygame.joystick.get_count() > 0:
             self.gamepad = pygame.joystick.Joystick(0)
             self.gamepad.init()
@@ -50,8 +53,6 @@ class Player(Entity):
         
     def update(self):
         """Update player position and state"""
-        # Clear bullets from previous frame
-        self.new_bullets = []
         
         # Get current input state
         keys = pygame.key.get_pressed()
@@ -149,12 +150,10 @@ class Player(Entity):
             from bullets import PlayerBullet
             bullet_pos = Vector2(self.position.x, 
                                self.position.y - self.radius)
-            bullet = PlayerBullet(bullet_pos)
-            self.new_bullets.append(bullet)
-            self.shoot_cooldown = 10
-    
-    def get_new_bullets(self):
-        """Get bullets created this frame and clear the list"""
-        bullets = self.new_bullets[:]
-        self.new_bullets = []
-        return bullets
+            
+            # Create bullet and add directly to entity manager
+            entity_manager = self.get_entity_manager()
+            if entity_manager:  # Check in case weak reference was garbage collected
+                bullet = PlayerBullet(entity_manager, bullet_pos)
+                entity_manager.add_entity(bullet)
+                self.shoot_cooldown = 10

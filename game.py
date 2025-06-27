@@ -4,20 +4,27 @@ from pygame.math import Vector2
 import numpy as np
 from player import Player
 from enemy import Enemy
-from bullets import PlayerBullet
-from talakat import TalakatInterpreter, PATTERNS
 from globals import Globals
 from entity import EntityTag
 from entity_manager import EntityManager
 import gymnasium as gym
 from typing import Optional
 
+# Game State Enum
+class GameState:
+    START = 0
+    RUNNING = 1
+    DANGER = 2 # when a new enemy is spawned
+    PAUSED = 3
+    GAME_OVER = 4
+
 class Game(gym.Env):
     def __init__(self):
-        self._reset()
-        
-        # Initialize joystick support
+        # Initialize pygame and joystick early
+        pygame.init()
         pygame.joystick.init()
+        
+        self._reset()
         
         # Set up the environment
         super().__init__()
@@ -54,9 +61,9 @@ class Game(gym.Env):
         # Initialize entity manager
         self.entity_manager = EntityManager()
         
-        # Create entities
-        self.player = Player()
-        self.enemy = Enemy()  # Back to single enemy
+        # Create entities with entity manager reference
+        self.player = Player(self.entity_manager)
+        self.enemy = Enemy(self.entity_manager)  # Back to single enemy
         
         # Add entities to manager
         self.entity_manager.add_entity(self.player)
@@ -67,11 +74,7 @@ class Game(gym.Env):
         self.level = 1
         self.game_over = False
         self.win = False
-        self.interpreter = TalakatInterpreter()
-        self.current_pattern = PATTERNS[self.enemy.pattern_index]
-        self.enemy_shoot_timer = 0
         self.spawn_enemy_timer = 0
-        self.pattern_change_effect_timer = 0
         self.total_damage_dealt = 0
 
     def step(self, action: Any):
@@ -102,13 +105,11 @@ class Game(gym.Env):
         if self.game_over:
             return
             
-        # Update player (now handles input and shooting internally)
+        # Update player (handles input and shooting internally via EntityManager)
         self.player.update()
         
-        # Get any new bullets from player and add them to entity manager
-        new_bullets = self.player.get_new_bullets()
-        for bullet in new_bullets:
-            self.entity_manager.add_entity(bullet)
+        # Update enemy (handles bullet spawning internally via EntityManager)
+        self.enemy.update()
             
         # Update player bullets and remove offscreen ones
         player_bullets = self.entity_manager.get_entities_by_tag(EntityTag.PLAYER_BULLET)
@@ -127,41 +128,15 @@ class Game(gym.Env):
         # Handle all collision interactions
         self.add_collision_handlers()
                 
-        # Enemy generation and bullet pattern update
+        # Enemy spawning timer
         if self.spawn_enemy_timer > 0:
             self.spawn_enemy_timer -= 1
             if self.spawn_enemy_timer <= 0:
                 # Remove old enemy and create new one
                 self.entity_manager.remove_entity(self.enemy)
-                self.enemy = Enemy()
+                self.enemy = Enemy(self.entity_manager)
                 self.enemy.health = min(100 + (self.level - 1) * 20, 300)
                 self.entity_manager.add_entity(self.enemy)
-                self.current_pattern = PATTERNS[self.enemy.pattern_index]
-                self.interpreter.reset()
-                self.pattern_change_effect_timer = 30
-        else:
-            # Update enemy
-            self.enemy.update()
-            
-            # Check if pattern changed
-            if self.enemy.did_pattern_change():
-                self.current_pattern = PATTERNS[self.enemy.pattern_index]
-                self.interpreter.reset()
-                self.pattern_change_effect_timer = 30
-            
-            # Generate enemy bullets based on pattern (only when enemy is in position)
-            self.enemy_shoot_timer += 1
-            if self.enemy_shoot_timer >= 3:
-                self.enemy_shoot_timer = 0
-                if (self.pattern_change_effect_timer <= 0 and 
-                    not self.enemy.is_entering):  # Don't shoot while entering
-                    new_bullets = self.interpreter.get_bullets(self.current_pattern, self.enemy.position)
-                    for bullet in new_bullets:
-                        self.entity_manager.add_entity(bullet)
-        
-        # Update pattern change effect timer
-        if self.pattern_change_effect_timer > 0:
-            self.pattern_change_effect_timer -= 1
         
         # Clean up inactive entities
         self.entity_manager.cleanup_inactive()
@@ -213,6 +188,11 @@ class Game(gym.Env):
         # Lives
         lives_text = font.render(f"Lives: {self.player.lives}", True, (255, 255, 255))
         surface.blit(lives_text, (5, 25))
+        
+        # Active entities count (bottom left corner)
+        active_entities_count = self.entity_manager.count_active_entities()
+        entities_text = font.render(f"Entities: {active_entities_count}", True, (255, 255, 255))
+        surface.blit(entities_text, (5, 225))  # Bottom left (240 - 15 = 225)
         
         # Game over screen
         if self.game_over:

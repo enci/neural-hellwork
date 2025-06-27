@@ -57,6 +57,10 @@ class EntityManager:
         self.entities.clear()
         self._entities_by_tag.clear()
     
+    def count_active_entities(self) -> int:
+        """Get the count of all active entities"""
+        return len(self.get_active_entities())
+    
     def count_by_tag(self, tag: int) -> int:
         """Count entities with a specific tag"""
         return len(self.get_entities_by_tag(tag))

@@ -5,8 +5,8 @@ from entity import Entity, EntityTag
 
 class Bullet(Entity):
     """Base bullet class for enemy bullets"""
-    def __init__(self, position, velocity, radius, color=(255, 255, 255)):
-        super().__init__(position=position, tag=EntityTag.ENEMY_BULLET)
+    def __init__(self, entity_manager, position, velocity, radius, color=(255, 255, 255)):
+        super().__init__(entity_manager, position=position, tag=EntityTag.ENEMY_BULLET)
         self.velocity = velocity
         self.radius = radius
         self.color = color
@@ -30,8 +30,8 @@ class Bullet(Entity):
 
 class PlayerBullet(Entity):
     """Player bullet class"""
-    def __init__(self, position):
-        super().__init__(position=position, tag=EntityTag.PLAYER_BULLET)
+    def __init__(self, entity_manager, position):
+        super().__init__(entity_manager, position=position, tag=EntityTag.PLAYER_BULLET)
         self.velocity = Vector2(0, -Globals.bullet_speed)  # Upward movement
         self.radius = 2  # Scaled down for 180x240 resolution
         self.color = (255, 255, 0)  # Yellow
