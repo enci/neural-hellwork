@@ -2,13 +2,14 @@ import pygame
 from pygame.math import Vector2
 from globals import Globals
 from entity import Entity, EntityTag
+from antialiased_draw import draw_antialiased_circle
 
 class Bullet(Entity):
     """Base bullet class for enemy bullets"""
-    def __init__(self, position, velocity, radius, color=(255, 255, 255)):
-        super().__init__(position=position, tag=EntityTag.ENEMY_BULLET)
+    def __init__(self, entity_manager, position, velocity, radius=6, color=(255, 51, 0)):
+        super().__init__(entity_manager, position=position, tag=EntityTag.ENEMY_BULLET)
         self.velocity = velocity
-        self.radius = radius
+        self.radius = radius  # Scaled up for native resolution
         self.color = color
         
     def update(self):
@@ -23,18 +24,18 @@ class Bullet(Entity):
         
         screen_pos = self.position + camera_offset
         
-        # For now, draw as a circle - will be replaced with sprite later
-        pygame.draw.circle(surface, self.color, 
-                         (int(screen_pos.x), int(screen_pos.y)), 
-                         int(self.radius))
+        # Draw with anti-aliasing
+        draw_antialiased_circle(surface, self.color, 
+                               (screen_pos.x, screen_pos.y), 
+                               self.radius)
 
 class PlayerBullet(Entity):
     """Player bullet class"""
-    def __init__(self, position):
-        super().__init__(position=position, tag=EntityTag.PLAYER_BULLET)
+    def __init__(self, entity_manager, position):
+        super().__init__(entity_manager, position=position, tag=EntityTag.PLAYER_BULLET)
         self.velocity = Vector2(0, -Globals.bullet_speed)  # Upward movement
-        self.radius = 2  # Scaled down for 180x240 resolution
-        self.color = (255, 255, 0)  # Yellow
+        self.radius = 6  # Scaled up for native resolution
+        self.color = (221, 151, 21)
         
     def update(self):
         """Update bullet position"""
@@ -48,7 +49,7 @@ class PlayerBullet(Entity):
         
         screen_pos = self.position + camera_offset
         
-        # For now, draw as a circle - will be replaced with sprite later
-        pygame.draw.circle(surface, self.color, 
-                         (int(screen_pos.x), int(screen_pos.y)), 
-                         self.radius)
+        # Draw with anti-aliasing
+        draw_antialiased_circle(surface, self.color, 
+                               (screen_pos.x, screen_pos.y), 
+                               self.radius)
