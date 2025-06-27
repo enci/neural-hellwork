@@ -128,8 +128,6 @@ class Player(Entity):
             
             # Reset position when hit (center-bottom)
             self.position = Vector2(0, 80)
-            return True
-        return False
     
     def get_center(self):
         """Get the center position for bullet spawning"""

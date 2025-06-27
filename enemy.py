@@ -4,6 +4,7 @@ import math
 import random
 from globals import Globals
 from entity import Entity, EntityTag
+from bullets import Bullet  # Enemy bullets
 
 class Enemy(Entity):
     def __init__(self, entity_manager):
@@ -97,12 +98,12 @@ class Enemy(Entity):
         
     def hit(self):
         """Handle enemy being hit"""
-        # Don't take damage if invincible or still entering
         if self.invincible or self.is_entering:
             return False
             
         self.health -= 10
         if self.health <= 0:
+            self.deactivate()
             return True
         return False
     
@@ -117,10 +118,8 @@ class Enemy(Entity):
             
             # Generate bullets using simple pattern for now
             pattern = self._get_current_pattern()
-            new_bullets = self._generate_bullets_from_pattern(pattern)
-            # Only add to self.new_bullets if bullets weren't added directly to entity manager
-            if new_bullets:
-                self.new_bullets.extend(new_bullets)
+            self._generate_bullets_from_pattern(pattern)
+
     
     def _get_current_pattern(self):
         """Get current bullet pattern - simplified to return default pattern"""
@@ -129,18 +128,11 @@ class Enemy(Entity):
         return "default"
     
     def _generate_bullets_from_pattern(self, pattern):
-        """Generate bullets based on pattern"""
-        from bullets import Bullet  # Enemy bullets
-        
         # Simple default pattern - single bullet downward
         if pattern == "default":
             bullet_pos = Vector2(self.position.x, self.position.y + self.radius)
             bullet_velocity = Vector2(0, 2)  # Move downward
-            
             # Create bullet and add directly to entity manager
-            entity_manager = self.get_entity_manager()
-            if entity_manager:  # Check in case weak reference was garbage collected
-                bullet = Bullet(entity_manager, bullet_pos, bullet_velocity, radius=2)
-                entity_manager.add_entity(bullet)
-        
-        return []  # Always return empty list since bullets are added directly
+            entity_manager = self.get_entity_manager()            
+            Bullet(entity_manager, bullet_pos, bullet_velocity, radius=2)
+            

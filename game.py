@@ -39,7 +39,7 @@ class Game(gym.Env):
     def _get_obs(self):
         """Get the current observation of the game state"""
         obs = {
-            'total_damage_dealt': self.total_damage_dealt,
+            'total_damage_dealt': self.damage_dealt,
             'player_hp': self.player.lives
         }
         return obs
@@ -75,7 +75,8 @@ class Game(gym.Env):
         self.game_over = False
         self.win = False
         self.spawn_enemy_timer = 0
-        self.total_damage_dealt = 0
+        self.damage_dealt = 0
+        self.damage_recieved = 0
 
     def step(self, action: Any):
         """Perform a game step based on the action"""
@@ -88,9 +89,9 @@ class Game(gym.Env):
         # Calculate reward
         reward = 0
         if self.win:
-            reward = 1000
+            reward = 100
         elif self.game_over:
-            reward = -1000
+            reward = -100
         
         observation = self._get_obs()
         terminated = self.game_over
@@ -104,47 +105,35 @@ class Game(gym.Env):
 
         if self.game_over:
             return
-            
-        # Update player (handles input and shooting internally via EntityManager)
-        self.player.update()
         
-        # Update enemy (handles bullet spawning internally via EntityManager)
-        self.enemy.update()
-            
-        # Update player bullets and remove offscreen ones
+        # Update entity manager (handles all active entities)
+        self.entity_manager.update_all()
+
+
+        # Player bullets vs enemy
         player_bullets = self.entity_manager.get_entities_by_tag(EntityTag.PLAYER_BULLET)
-        for bullet in player_bullets[:]:
-            bullet.update()
-            if bullet.is_offscreen():
-                bullet.deactivate()
-        
-        # Update enemy bullets and remove offscreen ones
-        enemy_bullets = self.entity_manager.get_entities_by_tag(EntityTag.ENEMY_BULLET)
-        for bullet in enemy_bullets[:]:
-            bullet.update()
-            if bullet.is_offscreen():
-                bullet.deactivate()
-        
-        # Handle all collision interactions
-        self.add_collision_handlers()
-                
-        # Enemy spawning timer
-        if self.spawn_enemy_timer > 0:
-            self.spawn_enemy_timer -= 1
-            if self.spawn_enemy_timer <= 0:
-                # Remove old enemy and create new one
-                self.entity_manager.remove_entity(self.enemy)
-                self.enemy = Enemy(self.entity_manager)
-                self.enemy.health = min(100 + (self.level - 1) * 20, 300)
-                self.entity_manager.add_entity(self.enemy)
-        
-        # Clean up inactive entities
-        self.entity_manager.cleanup_inactive()
-                
+        self.test_collisions(player_bullets, self.enemy, self.handle_bullet_enemy_collision)
+
+        # Enemy bullets vs player
+        enemy_bullets = self.entity_manager.get_entities_by_tag(EntityTag.ENEMY_BULLET)        
+        self.test_collisions(enemy_bullets, self.player, self.handle_bullet_player_collision)
+
+        active_entities = self.entity_manager.get_active_entities()
+        for entity in active_entities:
+            if entity.is_offscreen():
+                entity.deactivate()
+                        
         # Check win condition
         if self.level > 10:
             self.win = True
             self.game_over = True
+
+        # Check game over condition separately
+        if self.player.lives <= 0:
+            self.game_over = True
+
+         # Clean up inactive entities
+        self.entity_manager.cleanup_inactive()
     
     def draw(self, screen):
         """Draw everything to the screen"""
@@ -248,35 +237,15 @@ class Game(gym.Env):
                 if entity_a.collides_with(entity_b):
                     # Call the collision handler - no need for return value
                     collision_handler(entity_a, entity_b)
-    
-    def add_collision_handlers(self):
-        """Add collision handlers using the generic collision system"""
+
+    def handle_bullet_enemy_collision(self, bullet, enemy):
+        bullet.deactivate()
+        if enemy.hit():
+            self.score += 100
+            self.damage_dealt += 1
         
-        # Player bullets vs enemy
-        player_bullets = self.entity_manager.get_entities_by_tag(EntityTag.PLAYER_BULLET)
-        def handle_bullet_enemy_collision(bullet, enemy):
-            bullet.deactivate()
-            if enemy.hit():
-                self.score += 100
-                self.total_damage_dealt += 1
-                self.level += 1
-                self.spawn_enemy_timer = 180  # 3 seconds instead of 2
-                
-                # Clear all remaining player bullets when enemy dies
-                remaining_bullets = self.entity_manager.get_entities_by_tag(EntityTag.PLAYER_BULLET)
-                for remaining_bullet in remaining_bullets:
-                    remaining_bullet.deactivate()
-        
-        self.test_collisions(player_bullets, self.enemy, handle_bullet_enemy_collision)
-        
-        # Enemy bullets vs player
-        enemy_bullets = self.entity_manager.get_entities_by_tag(EntityTag.ENEMY_BULLET)
-        def handle_bullet_player_collision(bullet, player):
-            bullet.deactivate()
-            player.hit()  # Player handles its own state
-        
-        self.test_collisions(enemy_bullets, self.player, handle_bullet_player_collision)
-        
-        # Check game over condition separately
-        if self.player.lives <= 0:
-            self.game_over = True
+    def handle_bullet_player_collision(self, bullet, player):
+        bullet.deactivate()
+        if player.hit():
+            self.damage_recieved += 1
+            
