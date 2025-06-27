@@ -6,4 +6,4 @@ numpy>=1.21.0
 gymnasium>=1.1.1
 stable-baselines3>=2.6.0
 opencv-python>=4.1.0.86
-
+pygad>=3.4.0
