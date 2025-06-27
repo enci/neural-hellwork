@@ -8,13 +8,13 @@ class FontManager:
     
     def __init__(self):
         self._fonts: Dict[str, pygame.font.Font] = {}
-        self._font_path = os.path.join("assets", "Fonts", "Mayhem.otf")
-        # Font size scaling - Mayhem font renders much larger than default pygame font
+        self._font_path = os.path.join("assets", "Fonts", "Pulsewidth-1.0.0.otf")
+        # Font size scaling - Pulsewidth font renders much larger than default pygame font
         self._size_scale = 0.5  # Scale down by 50% to match default font appearance
-        
+    
     def get_scaled_size(self, desired_size: int) -> int:
         """
-        Get the scaled font size for the Mayhem font
+        Get the scaled font size for the Pulsewidth font
         
         Args:
             desired_size: The size you want the text to appear as
@@ -26,15 +26,15 @@ class FontManager:
         
     def get_font(self, size: int = 36) -> pygame.font.Font:
         """
-        Get the Mayhem font at the specified size
+        Get the Pulsewidth font at the specified size
         
         Args:
-            size: Font size in pixels (will be automatically scaled for Mayhem font)
+            size: Font size in pixels (will be automatically scaled for Pulsewidth font)
             
         Returns:
             pygame.font.Font object
         """
-        # Scale the size for the Mayhem font
+        # Scale the size for the Pulsewidth font
         actual_size = self.get_scaled_size(size)
         font_key = f"mayhem_{actual_size}"
         
@@ -57,7 +57,7 @@ class FontManager:
     
     def render_text(self, text: str, size: int = 36, color: tuple = (255, 255, 255), antialias: bool = True) -> pygame.Surface:
         """
-        Render text using the Mayhem font
+        Render text using the Pulsewidth font
         
         Args:
             text: Text to render

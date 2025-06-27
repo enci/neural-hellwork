@@ -156,8 +156,8 @@ class Game(gym.Env):
         self._draw_ui(screen)
         
     def _draw_ui(self, surface):
-        """Draw UI elements using custom Mayhem font"""
-        # Use normal font sizes - FontManager will scale them appropriately for Mayhem font
+        """Draw UI elements using custom Pulsewidth font"""
+        # Use normal font sizes - FontManager will scale them appropriately for Pulsewidth font
         large_font_size = 42   # For game over/win text
         medium_font_size = 28  # For main UI elements  
         small_font_size = 22   # For smaller text
