@@ -56,8 +56,15 @@ class Entity(ABC):
         distance = self.position.distance_to(other.position)
         return distance < (self.radius + other.radius)
     
-    def is_offscreen(self, bounds_left=-90, bounds_right=90, bounds_top=-120, bounds_bottom=120):
-        """Check if entity is outside the given bounds (default: centered coordinate system)"""
+    def is_offscreen(self, bounds_left=None, bounds_right=None, bounds_top=None, bounds_bottom=None):
+        """Check if entity is outside the given bounds (defaults to world bounds)"""
+        from globals import Globals
+        
+        if bounds_left is None: bounds_left = Globals.world_left
+        if bounds_right is None: bounds_right = Globals.world_right  
+        if bounds_top is None: bounds_top = Globals.world_top
+        if bounds_bottom is None: bounds_bottom = Globals.world_bottom
+        
         return (self.position.x < bounds_left - self.radius or 
                 self.position.x > bounds_right + self.radius or
                 self.position.y < bounds_top - self.radius or 

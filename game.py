@@ -7,6 +7,8 @@ from enemy import Enemy
 from globals import Globals
 from entity import EntityTag
 from entity_manager import EntityManager
+from antialiased_draw import draw_antialiased_circle
+from font_manager import font_manager
 import gymnasium as gym
 from typing import Optional
 
@@ -137,69 +139,63 @@ class Game(gym.Env):
     
     def draw(self, screen):
         """Draw everything to the screen"""
-        # Create a surface for the actual game resolution
-        game_surface = pygame.Surface((Globals.screen_width // 3, Globals.screen_height // 3))
-
-        
         # Clear with background color
-        game_surface.fill(Globals.bg_color)
+        screen.fill(Globals.bg_color)
 
         # Set up camera offset for centered coordinates (0,0 at center)
-        # Game resolution is 180x240, so center is at (90, 120)
-        camera_offset = Vector2(90, 120)
+        camera_offset = Vector2(Globals.half_width, Globals.half_height)
 
-        # draw a red circle at the center (0,0 in our coordinate system)
+        # draw a red circle at the center (0,0 in our coordinate system) with anti-aliasing
         center_screen_pos = Vector2(0, 0) + camera_offset
-        pygame.draw.circle(game_surface, (255, 0, 0), (int(center_screen_pos.x), int(center_screen_pos.y)), 10)
+        draw_antialiased_circle(screen, (255, 0, 0), (center_screen_pos.x, center_screen_pos.y), 10)
         
         # Draw all entities using entity manager with camera offset
-        self.entity_manager.draw_all(game_surface, camera_offset)
+        self.entity_manager.draw_all(screen, camera_offset)
             
         # Draw UI
-        self._draw_ui(game_surface)
-        
-        # Scale up 3x and blit to main screen
-        scaled_surface = pygame.transform.scale(game_surface, (Globals.screen_width, Globals.screen_height))
-        screen.blit(scaled_surface, (0, 0))
+        self._draw_ui(screen)
         
     def _draw_ui(self, surface):
-        """Draw UI elements"""
-        font = pygame.font.Font(None, 12)  # Smaller font for 180x240 resolution
+        """Draw UI elements using custom Mayhem font"""
+        # Use normal font sizes - FontManager will scale them appropriately for Mayhem font
+        large_font_size = 42   # For game over/win text
+        medium_font_size = 28  # For main UI elements  
+        small_font_size = 22   # For smaller text
         
         # Score
-        score_text = font.render(f"Score: {self.score}", True, (255, 255, 255))
-        surface.blit(score_text, (5, 5))
+        score_text = font_manager.render_text(f"Score: {self.score}", medium_font_size, (255, 255, 255))
+        surface.blit(score_text, (15, 15))
         
         # Level
-        level_text = font.render(f"Level: {self.level}", True, (255, 255, 255))
-        surface.blit(level_text, (5, 15))
+        level_text = font_manager.render_text(f"Level: {self.level}", medium_font_size, (255, 255, 255))
+        surface.blit(level_text, (15, 50))
         
         # Lives
-        lives_text = font.render(f"Lives: {self.player.lives}", True, (255, 255, 255))
-        surface.blit(lives_text, (5, 25))
+        lives_text = font_manager.render_text(f"Lives: {self.player.lives}", medium_font_size, (255, 255, 255))
+        surface.blit(lives_text, (15, 85))
         
         # Active entities count (bottom left corner)
         active_entities_count = self.entity_manager.count_active_entities()
-        entities_text = font.render(f"Entities: {active_entities_count}", True, (255, 255, 255))
-        surface.blit(entities_text, (5, 225))  # Bottom left (240 - 15 = 225)
+        entities_text = font_manager.render_text(f"Entities: {active_entities_count}", small_font_size, (255, 255, 255))
+        surface.blit(entities_text, (15, Globals.screen_height - 35))  # Bottom left
         
         # Game over screen
         if self.game_over:
-            overlay = pygame.Surface((180, 240))
+            overlay = pygame.Surface((Globals.screen_width, Globals.screen_height))
             overlay.set_alpha(180)
             overlay.fill((0, 0, 0))
             surface.blit(overlay, (0, 0))
             
             if self.win:
-                result_text = font.render("YOU WIN!", True, (0, 255, 0))
+                result_text = font_manager.render_text("YOU WIN!", large_font_size, (0, 255, 0))
             else:
-                result_text = font.render("GAME OVER", True, (255, 0, 0))
+                result_text = font_manager.render_text("GAME OVER", large_font_size, (255, 0, 0))
                 
-            text_rect = result_text.get_rect(center=(90, 100))
+            text_rect = result_text.get_rect(center=(Globals.half_width, Globals.half_height - 60))
             surface.blit(result_text, text_rect)
             
-            restart_text = font.render("Press R to restart", True, (255, 255, 255))
-            restart_rect = restart_text.get_rect(center=(90, 120))
+            restart_text = font_manager.render_text("Press R to restart", medium_font_size, (255, 255, 255))
+            restart_rect = restart_text.get_rect(center=(Globals.half_width, Globals.half_height))
             surface.blit(restart_text, restart_rect)
     
     def handle_event(self, event):
