@@ -18,66 +18,6 @@ class TokenType(Enum):
     RANDOM = "random"
     SEQUENCE = "sequence"
 
-# Define patterns for 180x240 resolution with scaled values
-PATTERNS = [
-    # Simple aimed pattern
-    [
-        (TokenType.COUNT, 2),
-        (TokenType.SPEED, 2),  # Scaled down speed
-        (TokenType.SIZE, 3),   # Scaled down size
-        (TokenType.ANGLE, 225),
-        (TokenType.SPREAD, 20),
-        (TokenType.WAIT, 15)
-    ],
-    
-    # Wide spread pattern
-    [
-        (TokenType.COUNT, 6),
-        (TokenType.SPREAD, 120),
-        (TokenType.SPEED, 1.5),  # Scaled down speed
-        (TokenType.SIZE, 3),     # Scaled down size
-        (TokenType.ANGLE, 270),
-        (TokenType.WAIT, 25)
-    ],
-    
-    # Rotating spiral
-    [
-        (TokenType.LOOP, 24),
-        (TokenType.ANGLE, 180),
-        (TokenType.SEQUENCE, (TokenType.ANGLE, [15, 15])),
-        (TokenType.COUNT, 2),
-        (TokenType.SPREAD, 10),
-        (TokenType.SPEED, 1.5),  # Scaled down speed
-        (TokenType.SIZE, 2.5),   # Scaled down size
-        (TokenType.WAIT, 4),
-        (TokenType.ENDLOOP, None)
-    ],
-    
-    # Random directional burst
-    [
-        (TokenType.LOOP, 4),
-        (TokenType.RANDOM, (TokenType.ANGLE, 180, 360)),
-        (TokenType.RANDOM, (TokenType.SPEED, 1, 2.5)),  # Scaled down speed
-        (TokenType.RANDOM, (TokenType.SIZE, 2, 4)),     # Scaled down size
-        (TokenType.COUNT, 10),
-        (TokenType.SPREAD, 45),
-        (TokenType.WAIT, 20),
-        (TokenType.ENDLOOP, None)
-    ],
-    
-    # Sweeping wave
-    [
-        (TokenType.LOOP, 8),
-        (TokenType.COUNT, 8),
-        (TokenType.SPREAD, 30),
-        (TokenType.SEQUENCE, (TokenType.ANGLE, [200, 220, 240, 260, 280, 300, 320, 340])),
-        (TokenType.SEQUENCE, (TokenType.SIZE, [2, 2.5, 3, 3.5, 3, 2.5, 2, 1.5])),  # Scaled down sizes
-        (TokenType.SPEED, 1.25),  # Scaled down speed
-        (TokenType.WAIT, 8),
-        (TokenType.ENDLOOP, None)
-    ]
-]
-
 class TalakatInterpreter:
     def __init__(self):
         self.default_values = {

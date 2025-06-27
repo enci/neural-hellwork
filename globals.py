@@ -18,6 +18,11 @@ class Globals:
     # Visual settings
     bg_color = (45, 46, 40)
     
+    # UI colors
+    ui_text_color = (200, 200, 200)    # Light gray for regular UI text
+    player_color = (221, 151, 21)      # Orange/gold - matches player
+    enemy_color = (255, 51, 0)         # Red - matches enemy
+    
     # Game speeds (for native resolution)
     player_speed = 4.5    # Scaled up 3x from 1.5
     bullet_speed = 9.0    # Scaled up 3x from 3.0

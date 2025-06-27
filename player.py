@@ -5,11 +5,13 @@ from globals import Globals
 from entity import Entity, EntityTag
 from tools import seconds_to_frames
 from antialiased_draw import draw_antialiased_circle
+from shape_renderer import ShapeRenderer
 import math
 
 class Player(Entity):
     def __init__(self, entity_manager):
         super().__init__(entity_manager, position=Vector2(0, Globals.world_bottom - 120), tag=EntityTag.PLAYER)  # Center-bottom
+        entity_manager.add_entity(self)  # Add to entity manager
         self.radius = 15  # Scaled up for native resolution
         self.color = (221, 151, 21)
         self.speed = Globals.player_speed
@@ -106,10 +108,15 @@ class Player(Entity):
         if self.bot_enabled:
             color = (100, 255, 100)  # Green tint when bot is active
         
-        # Draw with anti-aliasing
-        draw_antialiased_circle(surface, color, 
-                               (screen_pos.x, screen_pos.y), 
-                               self.radius)
+        # Draw custom player shape - elongated hexagon
+        # Make it slightly larger than the collision radius for visual appeal
+        shape_width = self.radius * 1.6  # Wider than collision
+        shape_height = self.radius * 2.2  # Taller than collision, giving it a ship-like appearance
+        
+        ShapeRenderer.draw_elongated_hexagon(surface, color, 
+                                           (screen_pos.x, screen_pos.y),
+                                           shape_width, shape_height,
+                                           outline_width=0, antialiased=True)
         
     def hit(self):
         """Handle player being hit"""

@@ -9,6 +9,7 @@ from entity import EntityTag
 from entity_manager import EntityManager
 from antialiased_draw import draw_antialiased_circle
 from font_manager import font_manager
+from background import ScrollingBackground
 import gymnasium as gym
 from typing import Optional
 
@@ -63,14 +64,13 @@ class Game(gym.Env):
         # Initialize entity manager
         self.entity_manager = EntityManager()
         
+        # Initialize scrolling background
+        self.background = ScrollingBackground()
+        
         # Create entities with entity manager reference
         self.player = Player(self.entity_manager)
         self.enemy = Enemy(self.entity_manager)  # Back to single enemy
-        
-        # Add entities to manager
-        self.entity_manager.add_entity(self.player)
-        self.entity_manager.add_entity(self.enemy)
-        
+                
         # Game state
         self.score = 0
         self.level = 1
@@ -108,6 +108,9 @@ class Game(gym.Env):
         if self.game_over:
             return
         
+        # Update background animation
+        self.background.update()
+        
         # Update entity manager (handles all active entities)
         self.entity_manager.update_all()
 
@@ -130,6 +133,10 @@ class Game(gym.Env):
             self.win = True
             self.game_over = True
 
+        # Check if enemy is ready dead
+        if not self.enemy.is_active() :
+            self.spawn_enemy()
+
         # Check game over condition separately
         if self.player.lives <= 0:
             self.game_over = True
@@ -139,15 +146,11 @@ class Game(gym.Env):
     
     def draw(self, screen):
         """Draw everything to the screen"""
-        # Clear with background color
-        screen.fill(Globals.bg_color)
+        # Draw scrolling background
+        self.background.draw(screen)
 
         # Set up camera offset for centered coordinates (0,0 at center)
         camera_offset = Vector2(Globals.half_width, Globals.half_height)
-
-        # draw a red circle at the center (0,0 in our coordinate system) with anti-aliasing
-        center_screen_pos = Vector2(0, 0) + camera_offset
-        draw_antialiased_circle(screen, (255, 0, 0), (center_screen_pos.x, center_screen_pos.y), 10)
         
         # Draw all entities using entity manager with camera offset
         self.entity_manager.draw_all(screen, camera_offset)
@@ -163,21 +166,22 @@ class Game(gym.Env):
         small_font_size = 22   # For smaller text
         
         # Score
-        score_text = font_manager.render_text(f"Score: {self.score}", medium_font_size, (255, 255, 255))
+        score_text = font_manager.render_text(f"Score: {self.score}", medium_font_size, Globals.ui_text_color)
         surface.blit(score_text, (15, 15))
         
         # Level
-        level_text = font_manager.render_text(f"Level: {self.level}", medium_font_size, (255, 255, 255))
-        surface.blit(level_text, (15, 50))
+        level_text = font_manager.render_text(f"Level: {self.level}", medium_font_size, Globals.ui_text_color)
+        surface.blit(level_text, (15, 45))
         
         # Lives
-        lives_text = font_manager.render_text(f"Lives: {self.player.lives}", medium_font_size, (255, 255, 255))
-        surface.blit(lives_text, (15, 85))
+        lives_text = font_manager.render_text(f"Lives: {self.player.lives}", medium_font_size, Globals.ui_text_color)
+        surface.blit(lives_text, (15, 75))
         
-        # Active entities count (bottom left corner)
-        active_entities_count = self.entity_manager.count_active_entities()
-        entities_text = font_manager.render_text(f"Entities: {active_entities_count}", small_font_size, (255, 255, 255))
-        surface.blit(entities_text, (15, Globals.screen_height - 35))  # Bottom left
+        # Active entities count (bottom left)
+        active_count = len(self.entity_manager.get_active_entities())
+        entities_text = font_manager.render_text(f"Entities: {active_count}", small_font_size, Globals.ui_text_color)
+        surface.blit(entities_text, (15, Globals.screen_height - 35))
+        
         
         # Game over screen
         if self.game_over:
@@ -187,14 +191,16 @@ class Game(gym.Env):
             surface.blit(overlay, (0, 0))
             
             if self.win:
-                result_text = font_manager.render_text("YOU WIN!", large_font_size, (0, 255, 0))
+                # Use player color for win message
+                result_text = font_manager.render_text("YOU WIN!", large_font_size, Globals.player_color)
             else:
-                result_text = font_manager.render_text("GAME OVER", large_font_size, (255, 0, 0))
+                # Use enemy color for game over message
+                result_text = font_manager.render_text("GAME OVER", large_font_size, Globals.enemy_color)
                 
             text_rect = result_text.get_rect(center=(Globals.half_width, Globals.half_height - 60))
             surface.blit(result_text, text_rect)
             
-            restart_text = font_manager.render_text("Press R to restart", medium_font_size, (255, 255, 255))
+            restart_text = font_manager.render_text("Press R to restart", medium_font_size, Globals.ui_text_color)
             restart_rect = restart_text.get_rect(center=(Globals.half_width, Globals.half_height))
             surface.blit(restart_text, restart_rect)
     
@@ -244,4 +250,9 @@ class Game(gym.Env):
         bullet.deactivate()
         if player.hit():
             self.damage_recieved += 1
+
+    def spawn_enemy(self):
+        """Spawn a new enemy and add it to the entity manager"""
+        self.level += 1
+        self.enemy = Enemy(self.entity_manager)
             

@@ -7,12 +7,14 @@ from entity import Entity, EntityTag
 from bullets import Bullet  # Enemy bullets
 from tools import seconds_to_frames
 from antialiased_draw import draw_antialiased_circle, draw_antialiased_rect
+from shape_renderer import ShapeRenderer
 
 class Enemy(Entity):
     def __init__(self, entity_manager):
         # Random starting X position above screen
         start_x = random.uniform(Globals.world_left + 90, Globals.world_right - 90)  # Don't start too close to edges
         super().__init__(entity_manager, position=Vector2(start_x, Globals.world_top - 90), tag=EntityTag.ENEMY)  # Start above screen
+        entity_manager.add_entity(self)  # Add to entity manager
         self.radius = 24  # Scaled up for native resolution
         self.color = (255, 51, 0)
         self.health = 100
@@ -87,18 +89,30 @@ class Enemy(Entity):
                                (screen_pos.x, screen_pos.y), 
                                self.radius)
         
-        # Health bar (scaled for native resolution) - keep regular rectangles since they're fine
-        bar_width = 75
-        bar_height = 6
-        fill_width = (self.health / self.max_health) * bar_width
+        # Arc health bar around the enemy (always visible)
+        health_percentage = self.health / self.max_health
         
-        bar_x = screen_pos.x - bar_width // 2
-        bar_y = screen_pos.y + self.radius + 5
+        # Health bar parameters
+        arc_radius = self.radius + 8  # Distance from enemy center
+        arc_thickness = 4             # Thickness of the arc
         
-        # Health bar background (white outline)
-        pygame.draw.rect(surface, (255, 255, 255), (bar_x, bar_y, bar_width, bar_height), 1)
-        # Health bar fill (red)
-        pygame.draw.rect(surface, (255, 0, 0), (bar_x, bar_y, fill_width, bar_height))
+        # Full circle health bar
+        start_angle = -math.pi / 2    # Start at top
+        total_arc = 2 * math.pi       # Full circle (2π radians)
+        health_arc = total_arc * health_percentage
+        
+        # Background arc (gray to show missing health) - always full circle
+        ShapeRenderer.draw_arc(surface, (80, 80, 80), 
+                             (screen_pos.x, screen_pos.y), 
+                             arc_radius, start_angle, start_angle + total_arc, 
+                             arc_thickness, antialiased=True)
+        
+        # Health arc (bright red for remaining health)
+        if health_percentage > 0:
+            ShapeRenderer.draw_arc(surface, (255, 80, 80), 
+                                 (screen_pos.x, screen_pos.y), 
+                                 arc_radius, start_angle, start_angle + health_arc, 
+                                 arc_thickness, antialiased=True)
         
     def hit(self):
         """Handle enemy being hit"""

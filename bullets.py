@@ -6,7 +6,7 @@ from antialiased_draw import draw_antialiased_circle
 
 class Bullet(Entity):
     """Base bullet class for enemy bullets"""
-    def __init__(self, entity_manager, position, velocity, radius=6, color=(255, 51, 0)):
+    def __init__(self, entity_manager, position, velocity, radius=12, color=(255, 51, 0)):
         super().__init__(entity_manager, position=position, tag=EntityTag.ENEMY_BULLET)
         self.velocity = velocity
         self.radius = radius  # Scaled up for native resolution
@@ -34,7 +34,7 @@ class PlayerBullet(Entity):
     def __init__(self, entity_manager, position):
         super().__init__(entity_manager, position=position, tag=EntityTag.PLAYER_BULLET)
         self.velocity = Vector2(0, -Globals.bullet_speed)  # Upward movement
-        self.radius = 6  # Scaled up for native resolution
+        self.radius = 16  # Scaled up for native resolution
         self.color = (221, 151, 21)
         
     def update(self):
