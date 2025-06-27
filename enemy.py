@@ -5,6 +5,7 @@ import random
 from globals import Globals
 from entity import Entity, EntityTag
 from bullets import Bullet  # Enemy bullets
+from tools import seconds_to_frames
 
 class Enemy(Entity):
     def __init__(self, entity_manager):
@@ -24,7 +25,7 @@ class Enemy(Entity):
         
         # Invincibility system for newly spawned enemies
         self.invincible = True
-        self.invincible_timer = 60  # 1 second of invincibility at 60 FPS
+        self.invincible_timer = seconds_to_frames(1.0)  # 1 second of invincibility
         
         # Bullet spawning system
         self.shoot_timer = 0
@@ -68,7 +69,7 @@ class Enemy(Entity):
         screen_pos = self.position + camera_offset
         
         # Flashing effect when invincible
-        if self.invincible and self.invincible_timer % 10 < 5:
+        if self.invincible and self.invincible_timer % seconds_to_frames(0.167) < seconds_to_frames(0.083):  # Flash every 0.167s, visible for 0.083s
             # Don't draw on some frames to create flashing effect
             return
         
@@ -113,7 +114,7 @@ class Enemy(Entity):
     def _handle_bullet_spawning(self):
         """Handle enemy bullet spawning"""
         self.shoot_timer += 1
-        if self.shoot_timer >= 3:  # Shoot every 3 frames
+        if self.shoot_timer >= seconds_to_frames(0.75):  # Shoot every 0.75 seconds (lower frequency for better playability)
             self.shoot_timer = 0
             
             # Generate bullets using simple pattern for now
@@ -128,11 +129,41 @@ class Enemy(Entity):
         return "default"
     
     def _generate_bullets_from_pattern(self, pattern):
-        # Simple default pattern - single bullet downward
+        """Generate bullets from pattern - 5-bullet downward spread"""
         if pattern == "default":
-            bullet_pos = Vector2(self.position.x, self.position.y + self.radius)
-            bullet_velocity = Vector2(0, 2)  # Move downward
-            # Create bullet and add directly to entity manager
-            entity_manager = self.get_entity_manager()            
-            Bullet(entity_manager, bullet_pos, bullet_velocity, radius=2)
+            bullet_count = 5
+            spread_angle = 60  # degrees total spread
+            base_speed = 1.5   # slower speed for better playability
+            
+            # Calculate starting angle (90 degrees is straight down in screen coordinates)
+            center_angle = 90  # Straight down
+            start_angle = center_angle - spread_angle / 2
+            
+            # Get entity manager
+            entity_manager = self.get_entity_manager()
+            if not entity_manager:
+                return
+            
+            # Create bullets in a spread pattern
+            for i in range(bullet_count):
+                if bullet_count > 1:
+                    # Calculate angle for this bullet
+                    angle_step = spread_angle / (bullet_count - 1)
+                    current_angle = start_angle + (i * angle_step)
+                else:
+                    current_angle = center_angle
+                
+                # Convert angle to radians and calculate velocity
+                # In screen coordinates, positive Y is downward
+                angle_rad = math.radians(current_angle)
+                velocity_x = math.cos(angle_rad) * base_speed
+                velocity_y = math.sin(angle_rad) * base_speed
+                
+                # Create bullet position slightly offset from enemy center
+                bullet_pos = Vector2(self.position.x, self.position.y + self.radius)
+                bullet_velocity = Vector2(velocity_x, velocity_y)
+                
+                # Create bullet and add to entity manager
+                bullet = Bullet(entity_manager, bullet_pos, bullet_velocity, radius=2)
+                entity_manager.add_entity(bullet)
             

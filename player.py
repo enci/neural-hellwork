@@ -2,6 +2,7 @@ import pygame
 from pygame.math import Vector2
 from globals import Globals
 from entity import Entity, EntityTag
+from tools import seconds_to_frames
 
 class Player(Entity):
     def __init__(self, entity_manager):
@@ -105,7 +106,7 @@ class Player(Entity):
     def draw(self, surface, camera_offset=None):
         """Draw the player with camera offset"""
         # Blinking effect when invincible
-        if self.invincible and self.invincible_timer % 10 < 5:
+        if self.invincible and self.invincible_timer % seconds_to_frames(0.167) < seconds_to_frames(0.083):  # Flash every 0.167s, visible for 0.083s
             return
         
         # Calculate screen position with camera offset
@@ -124,7 +125,7 @@ class Player(Entity):
         if not self.invincible:
             self.lives -= 1
             self.invincible = True
-            self.invincible_timer = 90  # 1.5 seconds at 60 FPS
+            self.invincible_timer = seconds_to_frames(1.5)  # 1.5 seconds of invincibility
             
             # Reset position when hit (center-bottom)
             self.position = Vector2(0, 80)
@@ -154,4 +155,4 @@ class Player(Entity):
             if entity_manager:  # Check in case weak reference was garbage collected
                 bullet = PlayerBullet(entity_manager, bullet_pos)
                 entity_manager.add_entity(bullet)
-                self.shoot_cooldown = 10
+                self.shoot_cooldown = seconds_to_frames(0.167)  # ~0.167 seconds between shots
