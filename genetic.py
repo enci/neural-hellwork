@@ -1,18 +1,42 @@
+import time
+
 import pygad
+from pygame import Vector2
+import math
+from talakat import TokenType
+from talakat_evaluator import TalakatEvaluator
 
-target_difficulty = 0
-
+target_avg_bullets = 10
+n_fitness_call = 0
 
 def fitness_func(ga_instance, solution, solution_idx):  # solution = [count, angle, spread, speed, size, loop, wait]
-    bullets_distribution = 0
-    min_bullets = 0
-    # evaluate these by initializing a game with these parameters
-    # return -(difficulty_eval(bullets_distribution, min_bullets) - target_difficulty) ** 2
-    return sum(-solution)
+    global n_fitness_call
+    n_fitness_call += 1
+    pattern = [
+        (TokenType.COUNT, solution[0]),
+        (TokenType.ANGLE, solution[1]),
+        (TokenType.SPREAD, solution[2]),
+        (TokenType.SPEED, solution[3]),  # Scaled down speed
+        (TokenType.SIZE, solution[4]),  # Scaled down size
+        (TokenType.LOOP, solution[5]),
+        (TokenType.WAIT, solution[6])
+    ]
+    enemy_pos = Vector2(0, 270)
+    # Create evaluator with bounds
+    evaluator = TalakatEvaluator(
+        pattern=pattern,
+        enemy_position=enemy_pos,
+        bounds=(-270, 270, -360, 360)
+    )
+    n_frames = 300
+    evaluator.simulate(n_frames)
+    # min_x, max_x, min_y, max_y = evaluator.get_coverage_area()
+    # area = (max_x - min_x) * (max_y - min_y)
+    average_bullets = evaluator.get_total_bullets_spawned()/n_frames
+    # difficulty = average number of bullets
+    # always maximize bullets coverage
+    return -(average_bullets - target_avg_bullets)**2 #+ (area / (520*720))
 
-
-def difficulty_eval(bullets_distribution, min_bullets):
-    return 0
 
 
 fitness_function = fitness_func
@@ -23,10 +47,10 @@ gene_space = [
         {'low': 0.1, 'high': 5},      # speed
         {'low': 0.1, 'high': 5},      # size
         list(range(0, 51)),      # loop
-        list(range(0, 51)),      # wait
+        list(range(0, 2)),      # wait
     ]
 
-num_generations = 500
+num_generations = 20
 num_parents_mating = 4
 
 sol_per_pop = 8
@@ -38,7 +62,7 @@ keep_parents = -1
 crossover_type = "uniform"
 
 mutation_type = "random"
-mutation_probability = 0.2
+mutation_probability = 0.1
 
 ga_instance = pygad.GA(num_generations=num_generations,
                        num_parents_mating=num_parents_mating,
@@ -50,8 +74,13 @@ ga_instance = pygad.GA(num_generations=num_generations,
                        keep_parents=keep_parents,
                        crossover_type=crossover_type,
                        mutation_type=mutation_type,
-                       mutation_probability=mutation_probability)
+                       mutation_probability=mutation_probability,
+                       save_best_solutions=True)
+t = time.time()
 ga_instance.run()
 # ga_instance.plot_fitness()
 # print(ga_instance.solutions_fitness)
 print(ga_instance.best_solution())
+print(ga_instance.best_solutions)
+print(time.time() - t)
+print(n_fitness_call)

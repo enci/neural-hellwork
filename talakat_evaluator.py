@@ -2,6 +2,7 @@
 TalakatEvaluator - Simulates Talakat bullet patterns and tracks bullet positions over time
 """
 import math
+import time
 from typing import List, Tuple, Dict, Optional
 from pygame.math import Vector2
 from talakat import TalakatInterpreter, TokenType, PATTERNS
@@ -113,13 +114,13 @@ class TalakatEvaluator:
         bullets_to_remove = []
         for i, bullet in enumerate(self.active_bullets):
             # Create snapshot before updating (so age reflects current frame)
-            snapshot = BulletSnapshot(
-                position=bullet['position'].copy(),
-                velocity=bullet['velocity'].copy(),
-                size=bullet['size'],
-                color=bullet['color'],
-                age=bullet['age']
-            )
+            # snapshot = BulletSnapshot(
+            #     position=bullet['position'],
+            #     velocity=bullet['velocity'],
+            #     size=bullet['size'],
+            #     color=bullet['color'],
+            #     age=bullet['age']
+            # )
             
             # Update position and age for next frame
             bullet['position'] += bullet['velocity']
@@ -130,14 +131,14 @@ class TalakatEvaluator:
                 bullets_to_remove.append(i)
             
             # Add to frame snapshot (even if it will be removed next frame)
-            frame_snapshot.add_bullet(snapshot)
+            # frame_snapshot.add_bullet(snapshot)
         
         # Remove out-of-bounds bullets (in reverse order to maintain indices)
         for i in reversed(bullets_to_remove):
             del self.active_bullets[i]
         
         # Store the frame
-        self.frames.append(frame_snapshot)
+        # self.frames.append(frame_snapshot)
         self.current_frame += 1
     
     def _get_bullets_from_pattern(self) -> List[Dict]:
@@ -170,7 +171,7 @@ class TalakatEvaluator:
             self.interpreter.wait_counter = int(value)
         elif token_type == TokenType.SPREAD:
             self.interpreter.current_values[TokenType.SPREAD] = value
-        elif token_type == TokenType.LOOP:
+        elif token_type == TokenType.LOOP and int(value) > 0:
             self.interpreter.loop_stack.append(self.interpreter.current_index)
             self.interpreter.loop_iterations.append(int(value))
         elif token_type == TokenType.ENDLOOP:
@@ -342,13 +343,13 @@ def test_evaluator():
     """Test function for the TalakatEvaluator"""
     # Test with a simple pattern
     test_pattern = PATTERNS[1]  # Wide spread pattern
-    enemy_pos = Vector2(0, 0)
+    enemy_pos = Vector2(0, 270)
     
     # Create evaluator with bounds
     evaluator = TalakatEvaluator(
         pattern=test_pattern,
         enemy_position=enemy_pos,
-        bounds=(-500, 500, -500, 500)
+        bounds=(-270, 270, -360, 360)
     )
     
     # Run simulation
@@ -367,5 +368,23 @@ def test_evaluator():
             if frame.bullets:
                 print(f"  First bullet: {frame.bullets[0]}")
 
+
 if __name__ == "__main__":
-    test_evaluator()
+    # test_evaluator()
+    n = 100
+    n_frames = 300
+    t = time.time()
+    for i in range(n):
+        test_pattern = PATTERNS[1]  # Wide spread pattern
+        enemy_pos = Vector2(0, 270)
+
+        # Create evaluator with bounds
+        evaluator = TalakatEvaluator(
+            pattern=test_pattern,
+            enemy_position=enemy_pos,
+            bounds=(-270, 270, -360, 360)
+        )
+
+        # Run simulation
+        frames = evaluator.simulate(n_frames)  # 2 seconds at 60 FPS
+    print(time.time() - t)
