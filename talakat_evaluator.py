@@ -4,7 +4,7 @@ TalakatEvaluator - Simulates Talakat bullet patterns and tracks bullet positions
 import math
 from typing import List, Tuple, Dict, Optional
 from pygame.math import Vector2
-from talakat import TalakatInterpreter, TokenType, PATTERNS
+from talakat import TalakatInterpreter, TokenType
 from bullets import Bullet
 
 class BulletSnapshot:
@@ -340,8 +340,10 @@ class TalakatEvaluator:
 
 def test_evaluator():
     """Test function for the TalakatEvaluator"""
+    from bullet_patterns import PATTERNS
+    
     # Test with a simple pattern
-    test_pattern = PATTERNS[1]  # Wide spread pattern
+    test_pattern = PATTERNS["basic_spread"]  # Basic spread pattern
     enemy_pos = Vector2(0, 0)
     
     # Create evaluator with bounds

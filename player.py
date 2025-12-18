@@ -12,7 +12,7 @@ class Player(Entity):
     def __init__(self, entity_manager):
         super().__init__(entity_manager, position=Vector2(0, Globals.world_bottom - 120), tag=EntityTag.PLAYER)  # Center-bottom
         entity_manager.add_entity(self)  # Add to entity manager
-        self.radius = 15  # Scaled up for native resolution
+        self.radius = 2  # Scaled up for native resolution
         self.color = (221, 151, 21)
         self.speed = Globals.player_speed
         self.invincible = False
@@ -110,8 +110,8 @@ class Player(Entity):
         
         # Draw custom player shape - elongated hexagon
         # Make it slightly larger than the collision radius for visual appeal
-        shape_width = self.radius * 1.6  # Wider than collision
-        shape_height = self.radius * 2.2  # Taller than collision, giving it a ship-like appearance
+        shape_width = 15 * 1.6  # Wider than collision
+        shape_height = 25 * 2.2  # Taller than collision, giving it a ship-like appearance
         
         ShapeRenderer.draw_elongated_hexagon(surface, color, 
                                            (screen_pos.x, screen_pos.y),
@@ -326,7 +326,7 @@ class Player(Entity):
             
             # Create bullet and add directly to entity manager
             entity_manager = self.get_entity_manager()
-            if entity_manager:
+            if entity_manager:  
                 bullet = PlayerBullet(entity_manager, bullet_pos)
                 entity_manager.add_entity(bullet)
                 self.shoot_cooldown = seconds_to_frames(0.167)  # ~0.167 seconds between shots

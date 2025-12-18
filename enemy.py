@@ -8,6 +8,8 @@ from bullets import Bullet  # Enemy bullets
 from tools import seconds_to_frames
 from antialiased_draw import draw_antialiased_circle, draw_antialiased_rect
 from shape_renderer import ShapeRenderer
+from talakat import TalakatInterpreter
+from bullet_patterns import get_pattern_for_level
 
 class Enemy(Entity):
     def __init__(self, entity_manager):
@@ -30,13 +32,14 @@ class Enemy(Entity):
         self.invincible = True
         self.invincible_timer = seconds_to_frames(1.0)  # 1 second of invincibility
         
-        # Bullet spawning system
+        # Bullet spawning system with Talakat
         self.shoot_timer = 0
-        self.new_bullets = []  # List to hold bullets created this frame
+        self.talakat_interpreter = TalakatInterpreter()
+        self.current_pattern = get_pattern_for_level(1)  # Start with level 1 pattern
+        self.pattern_level = 1
         
     def update(self):
         """Update enemy position and state"""
-        self.new_bullets = []  # Clear bullets from previous frame
         
         # Update invincibility timer
         if self.invincible:
@@ -58,9 +61,9 @@ class Enemy(Entity):
         # Keep within bounds (centered coordinate system)
         self.position.x = max(Globals.world_left + self.radius, min(self.position.x, Globals.world_right - self.radius))
         
-        # Handle bullet spawning (only when in position and not invincible)
+        # Handle bullet spawning using Talakat (only when in position and not invincible)
         if not self.is_entering and not self.invincible:
-            self._handle_bullet_spawning()
+            self._handle_talakat_bullet_spawning()
         
     def draw(self, surface, camera_offset=None):
         """Draw the enemy with camera offset"""
@@ -109,7 +112,7 @@ class Enemy(Entity):
         
         # Health arc (bright red for remaining health)
         if health_percentage > 0:
-            ShapeRenderer.draw_arc(surface, (255, 80, 80), 
+            ShapeRenderer.draw_arc(surface, (255, 51, 0), 
                                  (screen_pos.x, screen_pos.y), 
                                  arc_radius, start_angle, start_angle + health_arc, 
                                  arc_thickness, antialiased=True)
@@ -133,59 +136,33 @@ class Enemy(Entity):
         if bounds_bottom is None: bounds_bottom = Globals.world_bottom
         return False
     
-    def _handle_bullet_spawning(self):
-        """Handle enemy bullet spawning"""
-        self.shoot_timer += 1
-        if self.shoot_timer >= seconds_to_frames(0.75):  # Shoot every 0.75 seconds (lower frequency for better playability)
-            self.shoot_timer = 0
-            
-            # Generate bullets using simple pattern for now
-            pattern = self._get_current_pattern()
-            self._generate_bullets_from_pattern(pattern)
-
+    def _handle_talakat_bullet_spawning(self):
+        """Handle enemy bullet spawning using Talakat patterns"""
+        # Get entity manager
+        entity_manager = self.get_entity_manager()
+        if not entity_manager:
+            return
+        
+        # Use Talakat interpreter to generate bullets
+        new_bullets = self.talakat_interpreter.get_bullets(
+            self.current_pattern, 
+            self.position, 
+            entity_manager
+        )
+        
+        # Add all generated bullets to the entity manager
+        for bullet in new_bullets:
+            entity_manager.add_entity(bullet)
     
-    def _get_current_pattern(self):
-        """Get current bullet pattern - simplified to return default pattern"""
-        # For now, just return a simple default pattern
-        # This replaces the complex PATTERNS system
-        return "default"
+    def set_pattern_level(self, level: int):
+        """Update the bullet pattern based on game level"""
+        if level != self.pattern_level:
+            self.pattern_level = level
+            self.current_pattern = get_pattern_for_level(level)
+            # Reset interpreter when changing patterns
+            self.talakat_interpreter.reset()
     
-    def _generate_bullets_from_pattern(self, pattern):
-        """Generate bullets from pattern - 5-bullet downward spread"""
-        if pattern == "default":
-            bullet_count = 5
-            spread_angle = 60  # degrees total spread
-            base_speed = 4.5   # Scaled up speed for native resolution
-            
-            # Calculate starting angle (90 degrees is straight down in screen coordinates)
-            center_angle = 90  # Straight down
-            start_angle = center_angle - spread_angle / 2
-            
-            # Get entity manager
-            entity_manager = self.get_entity_manager()
-            if not entity_manager:
-                return
-            
-            # Create bullets in a spread pattern
-            for i in range(bullet_count):
-                if bullet_count > 1:
-                    # Calculate angle for this bullet
-                    angle_step = spread_angle / (bullet_count - 1)
-                    current_angle = start_angle + (i * angle_step)
-                else:
-                    current_angle = center_angle
-                
-                # Convert angle to radians and calculate velocity
-                # In screen coordinates, positive Y is downward
-                angle_rad = math.radians(current_angle)
-                velocity_x = math.cos(angle_rad) * base_speed
-                velocity_y = math.sin(angle_rad) * base_speed
-                
-                # Create bullet position slightly offset from enemy center
-                bullet_pos = Vector2(self.position.x, self.position.y + self.radius)
-                bullet_velocity = Vector2(velocity_x, velocity_y)
-                
-                # Create bullet and add to entity manager (radius will default to 6)
-                bullet = Bullet(entity_manager, bullet_pos, bullet_velocity)
-                entity_manager.add_entity(bullet)
+    def reset_pattern(self):
+        """Reset the Talakat interpreter (useful when enemy respawns)"""
+        self.talakat_interpreter.reset()
             

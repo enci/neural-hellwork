@@ -79,6 +79,9 @@ class Game(gym.Env):
         self.spawn_enemy_timer = 0
         self.damage_dealt = 0
         self.damage_recieved = 0
+        
+        # Set initial enemy pattern level
+        self.enemy.set_pattern_level(self.level)
 
     def step(self, action: Any):
         """Perform a game step based on the action"""
@@ -255,4 +258,10 @@ class Game(gym.Env):
         """Spawn a new enemy and add it to the entity manager"""
         self.level += 1
         self.enemy = Enemy(self.entity_manager)
+        
+        # Set the enemy's bullet pattern based on current level
+        self.enemy.set_pattern_level(self.level)
+        
+        # Add the new enemy to the entity manager
+        self.entity_manager.add_entity(self.enemy)
             

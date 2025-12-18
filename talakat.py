@@ -21,10 +21,10 @@ class TokenType(Enum):
 class TalakatInterpreter:
     def __init__(self):
         self.default_values = {
-            TokenType.ANGLE: 270,
-            TokenType.COUNT: 1,
-            TokenType.SPEED: 1.5,  # Scaled down for 180x240
-            TokenType.SIZE: 3,     # Scaled down for 180x240
+            TokenType.ANGLE: 90,
+            TokenType.COUNT: 4,
+            TokenType.SPEED: 4.5,
+            TokenType.SIZE: 6,
             TokenType.COLOR: (255, 255, 255),
             TokenType.WAIT: 0,
             TokenType.SPREAD: 0
@@ -46,7 +46,7 @@ class TalakatInterpreter:
         self.wait_counter = 0
         self.sequence_indices = {}
     
-    def get_bullets(self, tokens, enemy_pos):
+    def get_bullets(self, tokens, enemy_pos, entity_manager):
         """Generate bullets based on the current state of the interpreter"""
         if self.wait_counter > 0:
             self.wait_counter -= 1
@@ -135,6 +135,7 @@ class TalakatInterpreter:
                 vel_y = math.sin(rad_angle) * speed
                 
                 new_bullet = Bullet(
+                    entity_manager,
                     pygame.math.Vector2(enemy_pos.x, enemy_pos.y),
                     pygame.math.Vector2(vel_x, vel_y),
                     size, color
